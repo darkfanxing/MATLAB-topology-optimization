@@ -1,9 +1,15 @@
-function [F, U, freedofs] = tip_loaded_cantilever_beam(nel_x, nel_y)
-    F = sparse(2*(nel_y+1)*(nel_x+1),1,-1,2*(nel_y+1)*(nel_x+1),1);
+function [F, U, free_dofs] = tip_loaded_cantilever_beam(nel_x, nel_y)
+    F = sparse( ...
+        2 * (nel_y+1) * (nel_x+1), ...
+        1, ...
+        -1, ...
+        2 * (nel_y+1) * (nel_x+1), ...
+        1 ...
+    );
     
-    U = zeros(2*(nel_y+1)*(nel_x+1),1);
+    U = zeros(2 * (nel_y+1) * (nel_x+1), 1);
 
-    fixeddofs = [1:2*(nel_y+1)];
-    alldofs = [1:2*(nel_y+1)*(nel_x+1)];
-    freedofs = setdiff(alldofs,fixeddofs);
+    fixed_dofs = [1:2 * (nel_y+1)];
+    all_dofs = [1:2 * (nel_y+1) * (nel_x+1)];
+    free_dofs = setdiff(all_dofs, fixed_dofs);
 end

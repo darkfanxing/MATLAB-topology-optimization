@@ -11,7 +11,8 @@ close all;
 % |       - 2: Mid-loaded Cantilever Beam
 % |       - 3: MBB Beam
 % |       - 4: Michell
-% |       - 4: Bridge
+% |       - 5: Bridge
+% |       - 6: Inverter
 % |
 % |__ nel_x (int): Number of element @ x-axis.
 % |
@@ -25,7 +26,11 @@ close all;
 % |
 % |__ r_min (float): The minimum sensitivity (or density) filter radius.
 % |
-% |__ filter_class(int, [1, 2]):
+% |__ sensitivity_filter_class (int, [1, 2]):
+% |      - 1: Sensitivity filter
+% |      - 2: Density filter
+% |
+% |__ densign_variable_filter_class (int, [1, 2]):
 % |      - 1: Sensitivity filter
 % |      - 2: Density filter
 % |
@@ -47,28 +52,33 @@ close all;
 % |__ is_timekeeping (boolean): It controls whether to is_timekeeping.
 % |
 % |__ update_method (str, ["oc", "mma"]): The update method used by the
-%                                         topology optimization algorithm.
+% |                                       topology optimization algorithm.
+% |
+% |__ max_iteration_number (int): The max iteration number.
 
-sample_number = 1;
+sample_number = 6;
 
 nel_x = 60;
 nel_y = 30;
 
-volume_fraction = 0.3;
+volume_fraction = 0.25;
 penalization = 3;
 r_min = 2;
-filter_class = 1;
+sensitivity_filter_class = 1;
+densign_variable_filter_class = 2;
 
-E_0 = 1; 
+E_0 = 1;
 E_min = 1e-9;
 nu = 0.3;
-
+ 
 is_plot_result = true;
 is_show_iteration_result = true;
-is_use_projection_function = true;
+is_use_projection_function = false;
 is_timekeeping = true;
 
 update_method = "mma";
+
+max_iteration_number = 1000;
 
 % == User Settings ==
 
@@ -76,17 +86,24 @@ addpath(genpath("update_methods/"));
 addpath(genpath("assets/samples/"));
 addpath(genpath("utils"));
 
+is_spring = false;
+spring_k = [];
+input_element = [];
+output_element = [];
 switch sample_number
     case 1
-        [F, U, freedofs] = tip_loaded_cantilever_beam(nel_x, nel_y);
+        [F, U, free_dofs] = tip_loaded_cantilever_beam(nel_x, nel_y);
     case 2
-        [F, U, freedofs] = mid_loaded_cantilever_beam(nel_x, nel_y);
+        [F, U, free_dofs] = mid_loaded_cantilever_beam(nel_x, nel_y);
     case 3
-        [F, U, freedofs] = MBB_beam(nel_x, nel_y);
+        [F, U, free_dofs] = MBB_beam(nel_x, nel_y);
     case 4
-        [F, U, freedofs] = michell(nel_x, nel_y);
+        [F, U, free_dofs] = michell(nel_x, nel_y);
     case 5
-        [F, U, freedofs] = bridge(nel_x, nel_y);
+        [F, U, free_dofs] = bridge(nel_x, nel_y);
+    case 6
+        [F, U, free_dofs, spring_k, input_element, output_element] = inverter(nel_x, nel_y);
+        is_spring = true;
 end
 
 
@@ -94,19 +111,25 @@ x = topology_optimization( ...
     nel_x, ...
     nel_y, ...
     volume_fraction, ...
-    3, ...
-    2, ...
-    1, ...
+    penalization, ...
+    r_min, ...
+    sensitivity_filter_class, ...
+    densign_variable_filter_class, ...
     E_0, ...
     E_min, ...
     nu, ...
     F, ...
     U, ...
-    freedofs, ...
+    free_dofs, ...
     is_plot_result, ...
     is_show_iteration_result, ...
     update_method, ...
-    is_use_projection_function ...
+    is_use_projection_function, ...
+    max_iteration_number, ...
+    spring_k, ...
+    is_spring, ...
+    input_element, ...
+    output_element ...
 );
 
 if is_timekeeping

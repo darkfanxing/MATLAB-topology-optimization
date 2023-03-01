@@ -1,145 +1,77 @@
-%-------------------------------------------------------
-%    This is the file mmasub.m
-%
-function [xmma,ymma,zmma,lam,xsi,eta,mu,zet,s,low,upp] = mma(m,n,iter,xval,xmin,xmax,xold1,xold2, df0dx,fval,dfdx,low,upp,a0,a,c,d,Beta);
-%
-%    Version September 2007 (and a small change August 2008)
-%
-%    Krister Svanberg <krille@math.kth.se>
-%    Department of Mathematics, SE-10044 Stockholm, Sweden.
-%
-%    This function mmasub performs one MMA-iteration, aimed at
-%    solving the nonlinear programming problem:
-%         
-%      Minimize  f_0(x) + a_0*z + sum( c_i*y_i + 0.5*d_i*(y_i)^2 )
-%    subject to  f_i(x) - a_i*z - y_i <= 0,  i = 1,...,m
-%                xmin_j <= x_j <= xmax_j,    j = 1,...,n
-%                z >= 0,   y_i >= 0,         i = 1,...,m
-%  *** INPUT:
-%
-%   m    = The number of general constraints.
-%   n    = The number of variables x_j.
-%  iter  = Current iteration number ( =1 the first time mmasub is called).
-%  xval  = Column vector with the current values of the variables x_j.
-%  xmin  = Column vector with the lower bounds for the variables x_j.
-%  xmax  = Column vector with the upper bounds for the variables x_j.
-%  xold1 = xval, one iteration ago (provided that iter>1).
-%  xold2 = xval, two iterations ago (provided that iter>2).
-%  f0val = The value of the objective function f_0 at xval.
-%  df0dx = Column vector with the derivatives of the objective function
-%          f_0 with respect to the variables x_j, calculated at xval.
-%  fval  = Column vector with the values of the constraint functions f_i,
-%          calculated at xval.
-%  dfdx  = (m x n)-matrix with the derivatives of the constraint functions
-%          f_i with respect to the variables x_j, calculated at xval.
-%          dfdx(i,j) = the derivative of f_i with respect to x_j.
-%  low   = Column vector with the lower asymptotes from the previous
-%          iteration (provided that iter>1).
-%  upp   = Column vector with the upper asymptotes from the previous
-%          iteration (provided that iter>1).
-%  a0    = The constants a_0 in the term a_0*z.
-%  a     = Column vector with the constants a_i in the terms a_i*z.
-%  c     = Column vector with the constants c_i in the terms c_i*y_i.
-%  d     = Column vector with the constants d_i in the terms 0.5*d_i*(y_i)^2.
-%     
-%*** OUTPUT:
-%
-%  xmma  = Column vector with the optimal values of the variables x_j
-%          in the current MMA subproblem.
-%  ymma  = Column vector with the optimal values of the variables y_i
-%          in the current MMA subproblem.
-%  zmma  = Scalar with the optimal value of the variable z
-%          in the current MMA subproblem.
-%  lam   = Lagrange multipliers for the m general MMA constraints.
-%  xsi   = Lagrange multipliers for the n constraints alfa_j - x_j <= 0.
-%  eta   = Lagrange multipliers for the n constraints x_j - beta_j <= 0.
-%   mu   = Lagrange multipliers for the m constraints -y_i <= 0.
-%  zet   = Lagrange multiplier for the single constraint -z <= 0.
-%   s    = Slack variables for the m general MMA constraints.
-%  low   = Column vector with the lower asymptotes, calculated and used
-%          in the current MMA subproblem.
-%  upp   = Column vector with the upper asymptotes, calculated and used
-%          in the current MMA subproblem.
-%
-%epsimin = sqrt(m+n)*10^(-9);
-epsimin = 10^(-7);
-raa0 = 0.00001;
-move = 0.5;
-albefa = 0.1;
-asyinit = 0.5 / Beta;
-asyincr = 1.15;
-asydecr = 0.7;
-eeen = ones(n, 1);
-eeem = ones(m, 1);
-zeron = zeros(n, 1);
+function [ ...
+    xmma, ...
+    ymma, ...
+    zmma, ...
+    general_mma_constraint_lagrange_multiplier, ...
+    xsi, ...
+    eta, ...
+    mu, ...
+    zet, ...
+    general_mma_constraint_slack, ...
+    asymptote_lower_bound, ...
+    asymptote_upper_bound ...
+] = mma(constraint_number, variable_number, iteration_number, x_value, x_min, x_max, x_old_1, x_old_2, df_0_dx, f_i_val, df_i_dx, asymptote_lower_bound, asymptote_upper_bound, a0, a_i, c, d, Beta)
 
-% Calculation of the asymptotes low and upp :
-if iter < 2.5
-  low = xval - asyinit * (xmax - xmin);
-  upp = xval + asyinit * (xmax - xmin);
-else
-  zzz = (xval - xold1) .* (xold1 - xold2);
-  factor = eeen;
-  factor(find(zzz > 0)) = asyincr;
-  factor(find(zzz < 0)) = asydecr;
-  low = xval - factor .* (xold1 - low);
-  upp = xval + factor .* (upp - xold1);
-  lowmin = xval - 10 * (xmax - xmin);
-  lowmax = xval - 0.01 * (xmax - xmin);
-  uppmin = xval + 0.01 * (xmax - xmin);
-  uppmax = xval + 10 * (xmax - xmin);
-  low = max(low, lowmin);
-  low = min(low, lowmax);
-  upp = min(upp, uppmax);
-  upp = max(upp, uppmin);
+    epsimin = 10^(-7); % sqrt(constraint_number+variable_number)*10^(-9);
+    move_distance = 0.5; % 0.5
+    second_bound_factor = 0.1; % 0.1
+    
+    asymptotes_initial_value = 0.75 / Beta; % 0.5, no beta?
+    asymptote_increase_value = 1.05; % 1.05
+    asymptote_decrease_value = 0.65; % 0.65
+    
+    design_variable_unit_array = ones(variable_number, 1);
+    
+    % calculate lower and upper bound
+    % [U_j, L_j] = x_j ± s_0 * (x_max - x_min)
+    if iteration_number <= 2
+      asymptote_lower_bound = x_value - asymptotes_initial_value * (x_max - x_min);
+      asymptote_upper_bound = x_value + asymptotes_initial_value * (x_max - x_min);
+    else
+      % The update rules by author
+      % if update direction of x value is the same, asymptote_update_factor increase
+      % else, asymptote value decrease
+      judgement_value = (x_value - x_old_1) .* (x_old_1 - x_old_2);
+      asymptote_update_factor = design_variable_unit_array;
+      asymptote_update_factor(judgement_value > 0) = asymptote_increase_value;
+      asymptote_update_factor(judgement_value < 0) = asymptote_decrease_value;
+
+      asymptote_lower_bound = x_value - asymptote_update_factor .* (x_old_1 - asymptote_lower_bound);
+      asymptote_upper_bound = x_value + asymptote_update_factor .* (asymptote_upper_bound - x_old_1);
+
+      asymptote_lower_bound = max(asymptote_lower_bound, x_value - 10 * (x_max - x_min));
+      asymptote_lower_bound = min(asymptote_lower_bound, x_value - 0.01 * (x_max - x_min));
+      asymptote_upper_bound = min(asymptote_upper_bound, x_value + 0.01 * (x_max - x_min));
+      asymptote_upper_bound = max(asymptote_upper_bound, x_value + 10 * (x_max - x_min));
+    end
+    
+    % define alpha and beta bound
+    alpha_bound_candidate_1 = asymptote_lower_bound + second_bound_factor * (x_value - asymptote_lower_bound);
+    alpha_bound_candidate_2 = x_value - move_distance * (x_max - x_min);
+    alpha = max(x_min, max(alpha_bound_candidate_1, alpha_bound_candidate_2));
+
+    beta_bound_candidate_1 = asymptote_upper_bound - second_bound_factor * (asymptote_upper_bound - x_value);
+    beta_bound_candidate_2 = x_value + move_distance * (x_max - x_min);
+    beta = min(min(beta_bound_candidate_1, beta_bound_candidate_2), x_max);
+    
+    % Pre-define parameter of p_0, q_0, p_i_vector, q_i_vector, b
+    u_minus_x = asymptote_upper_bound - x_value;
+    u_minus_x_square = u_minus_x .* u_minus_x;
+    x_minus_l = x_value - asymptote_lower_bound;
+    x_minus_l_square = x_minus_l .* x_minus_l;
+
+    % p_0, q_0 of objective function f_0
+    % and p_i_vector (p_i_vector), q_i_vector (q_i_vector), b of constraint function f_i
+    p_0 = max(df_0_dx, 0) .* u_minus_x_square;
+    q_0 = max(-df_0_dx, 0) .* x_minus_l_square;
+
+    p_i_vector = max(df_i_dx, 0) * spdiags(u_minus_x_square, 0, variable_number, variable_number); % spdiags: diagonal matrix
+    q_i_vector = max(-df_i_dx, 0) * spdiags(x_minus_l_square, 0, variable_number, variable_number);
+    b = ...
+        p_i_vector * (design_variable_unit_array ./ u_minus_x) ...
+        + q_i_vector * (design_variable_unit_array ./ x_minus_l) ...
+        - f_i_val;
+
+    %%% Solving the subproblem by a primal-dual Newton method
+    [xmma, ymma, zmma, general_mma_constraint_lagrange_multiplier, xsi, eta, mu, zet, general_mma_constraint_slack] = solve_(constraint_number, variable_number, epsimin, asymptote_lower_bound, asymptote_upper_bound, alpha, beta, p_0, q_0, p_i_vector, q_i_vector, a0, a_i, b, c, d);
 end
-
-% Calculation of the bounds alfa and beta :
-
-zzz1 = low + albefa * (xval - low);
-zzz2 = xval - move * (xmax - xmin);
-zzz  = max(zzz1, zzz2);
-alfa = max(zzz, xmin);
-zzz1 = upp - albefa * (upp - xval);
-zzz2 = xval + move * (xmax - xmin);
-zzz  = min(zzz1, zzz2);
-beta = min(zzz, xmax);
-
-% Calculations of p0, q0, P, Q and b.
-
-xmami = xmax - xmin;
-xmamieps = 0.00001 * eeen;
-xmami = max(xmami, xmamieps);% why?
-xmamiinv = eeen ./ xmami;
-ux1 = upp - xval;
-ux2 = ux1 .* ux1;
-xl1 = xval - low;
-xl2 = xl1 .* xl1;
-uxinv = eeen ./ ux1;
-xlinv = eeen ./ xl1;
-%
-p0 = zeron;
-q0 = zeron;
-p0 = max(df0dx, 0);
-q0 = max(-df0dx, 0);
-
-pq0 = 0.001 * (p0 + q0) + raa0 * xmamiinv;
-p0 = p0 + pq0;
-q0 = q0 + pq0;
-p0 = p0 .* ux2;
-q0 = q0 .* xl2;
-%
-P = sparse(m, n);
-Q = sparse(m, n);
-P = max(dfdx, 0);
-Q = max(-dfdx, 0);
-
-PQ = 0.001 * (P + Q) + raa0 * eeem * xmamiinv';
-P = P + PQ;
-Q = Q + PQ;
-P = P * spdiags(ux2, 0, n, n);
-Q = Q * spdiags(xl2, 0, n, n);
-b = P * uxinv + Q * xlinv - fval ;
-%
-%%% Solving the subproblem by a primal-dual Newton method
-[xmma,ymma,zmma,lam,xsi,eta,mu,zet,s] = solve_(m, n, epsimin, low, upp, alfa, beta, p0, q0, P, Q, a0, a, b, c, d);

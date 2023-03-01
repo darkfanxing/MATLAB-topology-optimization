@@ -1,9 +1,9 @@
-function [F, U, freedofs] = michell(nel_x, nel_y)
-    F = sparse(nel_x * (nel_y+1),1,-1,2*(nel_y+1)*(nel_x+1),1);
+function [F, U, free_dofs] = michell(nel_x, nel_y)
+    F = sparse(nel_x * (nel_y+1),1,-1,2*(nel_y+1)*(nel_x+1), 1);
 
-    U = zeros(2*(nel_y+1)*(nel_x+1),1);
+    U = zeros(2*(nel_y+1)*(nel_x+1), 1);
 
-    fixeddofs = [[2*(nel_y+1), 2*(nel_y+1)-1], [2*(nel_y+1)*(nel_x+1), 2*(nel_y+1)*(nel_x+1)-1]];
-    alldofs = [1:2*(nel_y+1)*(nel_x+1)];
-    freedofs = setdiff(alldofs,fixeddofs);
+    fixed_dofs = [[2*(nel_y+1), 2*(nel_y+1)-1], [2*(nel_y+1)*(nel_x+1), 2*(nel_y+1)*(nel_x+1)-1]];
+    all_dofs = [1:2*(nel_y+1)*(nel_x+1)];
+    free_dofs = setdiff(all_dofs,fixed_dofs);
 end

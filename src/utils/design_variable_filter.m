@@ -1,4 +1,4 @@
-function x_filter = filter_(x, H, Hs, filter_class)
+function x_filter = design_variable_filter(x, H, Hs, filter_class)
     % filter class: [1, 2]
     % - 1: sensitivity filter
     % - 2: density filter
