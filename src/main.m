@@ -6,7 +6,7 @@ close all;
 
 % Parameters:
 % |
-% |__ sample_number (int, [1, 2, 3, 4, 5]): The Default Samples.
+% |__ sample_number (int, [1, 2, 3, 4, 5, 6]): The Default Samples.
 % |       - 1: Tip-loaded Cantilever Beam
 % |       - 2: Mid-loaded Cantilever Beam
 % |       - 3: MBB Beam
