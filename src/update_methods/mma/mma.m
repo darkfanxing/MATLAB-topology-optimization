@@ -10,15 +10,15 @@ function [ ...
     general_mma_constraint_slack, ...
     asymptote_lower_bound, ...
     asymptote_upper_bound ...
-] = mma(constraint_number, variable_number, iteration_number, x_value, x_min, x_max, x_old_1, x_old_2, df_0_dx, f_i_val, df_i_dx, asymptote_lower_bound, asymptote_upper_bound, a0, a_i, c, d, Beta)
+] = mma(constraint_number, variable_number, iteration_number, x_value, x_min, x_max, x_old_1, x_old_2, df_0_dx, f_i_val, df_i_dx, asymptote_lower_bound, asymptote_upper_bound, a0, a_i, c, d, beta)
 
     epsimin = 10^(-7); % sqrt(constraint_number+variable_number)*10^(-9);
     move_distance = 0.5; % 0.5
     second_bound_factor = 0.1; % 0.1
     
-    asymptotes_initial_value = 0.75 / Beta; % 0.5, no beta?
-    asymptote_increase_value = 1.05; % 1.05
-    asymptote_decrease_value = 0.65; % 0.65
+    asymptotes_initial_value = 0.5 / beta; % 0.5, no beta?
+    asymptote_increase_value = 1.15; % 1.05
+    asymptote_decrease_value = 0.7; % 0.65
     
     design_variable_unit_array = ones(variable_number, 1);
     
@@ -52,7 +52,7 @@ function [ ...
 
     beta_bound_candidate_1 = asymptote_upper_bound - second_bound_factor * (asymptote_upper_bound - x_value);
     beta_bound_candidate_2 = x_value + move_distance * (x_max - x_min);
-    beta = min(min(beta_bound_candidate_1, beta_bound_candidate_2), x_max);
+    beta_ = min(min(beta_bound_candidate_1, beta_bound_candidate_2), x_max);
     
     % Pre-define parameter of p_0, q_0, p_i_vector, q_i_vector, b
     u_minus_x = asymptote_upper_bound - x_value;
@@ -73,5 +73,5 @@ function [ ...
         - f_i_val;
 
     %%% Solving the subproblem by a primal-dual Newton method
-    [xmma, ymma, zmma, general_mma_constraint_lagrange_multiplier, xsi, eta, mu, zet, general_mma_constraint_slack] = solve_(constraint_number, variable_number, epsimin, asymptote_lower_bound, asymptote_upper_bound, alpha, beta, p_0, q_0, p_i_vector, q_i_vector, a0, a_i, b, c, d);
+    [xmma, ymma, zmma, general_mma_constraint_lagrange_multiplier, xsi, eta, mu, zet, general_mma_constraint_slack] = solve_(constraint_number, variable_number, epsimin, asymptote_lower_bound, asymptote_upper_bound, alpha, beta_, p_0, q_0, p_i_vector, q_i_vector, a0, a_i, b, c, d);
 end

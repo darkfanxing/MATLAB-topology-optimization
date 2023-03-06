@@ -18,5 +18,5 @@ function [F, U, free_dofs, spring_k, input_element, output_element] = inverter(n
     free_dofs = setdiff(all_dofs, fixed_dofs);
     
     % input_element_x, input_element_y, output_element_x, output_element_y
-    spring_k = [1, 0, 1, 0];
+    spring_k = [0.1, 0, 1, 0];
 end

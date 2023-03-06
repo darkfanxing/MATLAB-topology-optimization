@@ -30,8 +30,7 @@ function [ ...
     asymptote_upper_bound = ones(variable_number, 1);
     
     a_0 = 1;
-
     a_i = zeros(constraint_number, 1);
-    c_mma = 2500 * ones(constraint_number, 1);
+    c_mma = 2000 * ones(constraint_number, 1);
     d = ones(constraint_number, 1);
 end

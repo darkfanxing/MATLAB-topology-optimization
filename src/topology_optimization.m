@@ -1,4 +1,4 @@
-function [x] = topology_optimization( ...
+function [x, GA, MA] = topology_optimization( ...
         nel_x, ...
         nel_y, ...
         volume_fraction, ...
@@ -66,12 +66,13 @@ function [x] = topology_optimization( ...
     end
 
     % 2. Optimization
-    beta_iteration = 1;
+    beta_iteration = 0;
     first_objtive_function_value = 1;
     tic;
 
-    while (volume_fraction_error > 0.002 || gray_index > 0.002 || change > 0.01) && (iteration_number < max_iteration_number)
+    while (volume_fraction_error > 0.004 || gray_index > 0.002 || change > 0.01) && (iteration_number < max_iteration_number)
         iteration_number = iteration_number + 1;
+        beta_iteration = beta_iteration + 1;
 
         % 2.1. Finite Element Method
         sK = reshape( ...
@@ -104,7 +105,7 @@ function [x] = topology_optimization( ...
                 nel_x ...
             );
 
-            objective_function_value = U(:, 2)' * K * U(:, 1);
+            objective_function_value = -U(:, 2)' * K * U(:, 1);
 
         else
             elements_objective_function_value = reshape( ...
@@ -147,7 +148,7 @@ function [x] = topology_optimization( ...
             end
 
             if is_spring
-                constraint_function_value = [scale * objective_function_value; sum(x_filter(:) / (volume_fraction * variable_number)) - 1];
+                constraint_function_value = [scale * objective_function_value + 5; sum(x_filter(:) / (volume_fraction * variable_number)) - 1];
                 df_i_dx = [-scale * sensitivity_objective_function_value(:)'; sensitivity_volume_fraction(:)' / (volume_fraction * variable_number)];
                 sensitivity_objective_function_value = zeros(variable_number, 1);
             else
@@ -185,7 +186,7 @@ function [x] = topology_optimization( ...
         end
 
         if is_use_projection_function
-            x_new = projection_function(x_new, beta);
+            x_new = projection_function(x_filter, beta);
         end
 
         change = max(max(abs(x_new - x)));
@@ -194,7 +195,7 @@ function [x] = topology_optimization( ...
         gray_index = sum(4 * x(:) .* (1 - x(:))) / length(x(:));
         volume_fraction_error = abs(volume_fraction - mean(x(:)));
 
-        if beta < 512 && (beta_iteration >= 50 || (change <= 0.01 && volume_fraction_error <= 0.001))
+        if beta < 512 && (beta_iteration >= 50 || (change <= 0.01 && volume_fraction_error <= 0.003))
             beta = 2 * beta;
             beta_iteration = 0;
             change = 1;
@@ -207,11 +208,27 @@ function [x] = topology_optimization( ...
 
         if is_plot
             colormap(gray);
-            imagesc(1 - x_filter);
+            imagesc(1 - x);
             caxis([0 1]);
             axis equal;
             axis off;
             drawnow;
+
+            if iteration_number == 1
+                pause(1);
+            end
+
         end
+    end
+
+    if is_spring
+        U_1 = U(:, 1);
+        
+        f_out = U_1(output_element(1)) * spring_k(3);
+        GA = abs(U_1(output_element(1)) / U_1(input_element(1)));
+        MA = abs(f_out / F(input_element(1)));
+    else
+        GA = "";
+        MA = "";
     end
 end

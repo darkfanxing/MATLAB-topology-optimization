@@ -58,13 +58,13 @@ close all;
 
 sample_number = 6;
 
-nel_x = 60;
-nel_y = 30;
+nel_x = 120;
+nel_y = 60;
 
 volume_fraction = 0.25;
 penalization = 3;
-r_min = 2;
-sensitivity_filter_class = 1;
+r_min = 2.5;
+sensitivity_filter_class = 2;
 densign_variable_filter_class = 2;
 
 E_0 = 1;
@@ -73,7 +73,7 @@ nu = 0.3;
  
 is_plot_result = true;
 is_show_iteration_result = true;
-is_use_projection_function = false;
+is_use_projection_function = true;
 is_timekeeping = true;
 
 update_method = "mma";
@@ -107,7 +107,7 @@ switch sample_number
 end
 
 
-x = topology_optimization( ...
+[x, GA, MA] = topology_optimization( ...
     nel_x, ...
     nel_y, ...
     volume_fraction, ...
@@ -134,4 +134,8 @@ x = topology_optimization( ...
 
 if is_timekeeping
     disp(toc);
+end
+
+if is_spring
+    fprintf("GA: %6.4f, MA: %6.4f \n", GA, MA);
 end
