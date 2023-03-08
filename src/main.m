@@ -71,10 +71,10 @@ E_0 = 1;
 E_min = 1e-9;
 nu = 0.3;
  
-is_plot_result = true;
+is_plot_result = false;
 is_show_iteration_result = true;
 is_use_projection_function = true;
-is_timekeeping = true;
+is_timekeeping = false;
 
 update_method = "mma";
 
@@ -105,7 +105,6 @@ switch sample_number
         [F, U, free_dofs, spring_k, input_element, output_element] = inverter(nel_x, nel_y);
         is_spring = true;
 end
-
 
 [x, GA, MA] = topology_optimization( ...
     nel_x, ...

@@ -13,9 +13,12 @@ function [ ...
     d ...
 ] = init_mma_parameters(x, nel_x, nel_y, is_spring)
     if is_spring
-        constraint_number = 2;
+        constraint_number = 3;
+%         a_i = zeros(constraint_number, 1);
+        a_i = [1 0 0]' ;
     else
         constraint_number = 1;
+        a_i = zeros(constraint_number, 1);
     end
     
     variable_number = nel_x * nel_y;
@@ -26,11 +29,11 @@ function [ ...
     x_old_1 = x(:);
     x_old_2 = x(:);
     
-    asymptote_lower_bound = ones(variable_number, 1);
+    asymptote_lower_bound = zeros(variable_number, 1);
     asymptote_upper_bound = ones(variable_number, 1);
     
     a_0 = 1;
-    a_i = zeros(constraint_number, 1);
+    
     c_mma = 2000 * ones(constraint_number, 1);
     d = ones(constraint_number, 1);
 end
